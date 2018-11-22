@@ -19,6 +19,7 @@ int main(int argc, const char * argv[]) {
 	//vlfeat_train_Encoder(dataFile);
 
 	/*step2 opencv_train_svm*/
-	(void)opencv_train_svm(dataFile, "DSIFT_GMM_SVM_MODEL");
+	//(void)opencv_train_svm(dataFile, "DSIFT_GMM_SVM_MODEL");
+	(void)vlfeat_test_demo("spoof_1.jpg");
 	return 0;
 }

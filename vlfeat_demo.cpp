@@ -715,4 +715,99 @@ void opencv_filestorage_demo()
 	fs.release();
 	return;
 }
+
+
+Ptr<SVM> vlfeat_load_SVM_model(const string& filename_to_load)
+{
+	Ptr<SVM> model = StatModel::load<SVM>(filename_to_load);
+	if (model.empty())
+		cout << "Could not read the classifier " << filename_to_load << endl;
+	else
+		cout << "The classifier " << filename_to_load << " is loaded.\n";
+
+	return model;
+}
+
+void vlfeat_load_GMM_model(void **pvlf, GMM_PARA_S &stGmm)
+{
+	/* load GMM model*/
+	FileStorage fs("DSIFT_GMM_MODEL.xml", FileStorage::READ);
+	fs["numClusters"] >> stGmm.numClusters;
+	fs["dimension"] >> stGmm.dimension;
+	fs["measMat"] >>stGmm.measMat;
+	fs["covarMat"] >> stGmm.covarMat;
+	fs["priorsMat"] >> stGmm.priorsMat;    
+	fs.release();
+
+	int step = 3;
+	int binSize = 8;
+	/*malloc memory*/
+	*pvlf = vl_dsift_new_basic(IMAGE_NEW_ROWS, IMAGE_NEW_COLS, step, binSize);
+	return;
+}
+
+void vlfeat_free_GMM_model(void *vlf)
+{
+	vl_dsift_delete((VlDsiftFilter *)vlf);
+	return;
+}
+
+float vlfeat_test_demo(const string &path)
+{
+	Ptr<SVM> model = vlfeat_load_SVM_model("DSIFT_GMM_SVM_MODEL");
+	VlDsiftFilter *vlf;
+	GMM_PARA_S stGmm;
+	vlfeat_load_GMM_model((void**)&vlf, stGmm);
+	/*transform dsift to FV by GMM*/
+
+	int dimension = stGmm.dimension;
+	int numClusters = stGmm.numClusters;
+	int imgSize = IMAGE_NEW_ROWS*IMAGE_NEW_COLS*sizeof(float);
+	float *grayImg = (float*)malloc(imgSize);
+	if (NULL == grayImg)
+	{
+		return -1;
+	}
+	memset(grayImg, 0, imgSize);
+
+	int encSize = sizeof(float)* 2 * dimension * numClusters;
+	int fishVecSize = 2 * dimension * numClusters;
+	// allocate space for the encoding
+	char* enc = (char*)vl_malloc(encSize);
+	if (NULL == enc)
+	{
+		vl_dsift_delete(vlf);
+		free(grayImg);
+		return -1;
+	}
+	memset(enc, 0, encSize);
+
+	vleat_readImage(path, grayImg);
+
+	vl_dsift_process(vlf, grayImg);
+
+	// run fisher encoding
+	vl_size res = 0;
+	res = vl_fisher_encode
+		(enc, VL_TYPE_FLOAT,
+		stGmm.measMat.data, dimension, numClusters,
+		stGmm.covarMat.data,
+		stGmm.priorsMat.data,
+		vlf->descrs, vlf->numFrames,
+		VL_FISHER_FLAG_IMPROVED
+		);
+
+	Mat FishVec(1, fishVecSize, CV_32FC1, Scalar(0));
+	memcpy(FishVec.data, enc, encSize);
+
+	float r = model->predict(FishVec);
+
+	/*free memory*/
+	free(grayImg);
+
+	vl_free(enc);
+
+	vlfeat_free_GMM_model(vlf);
+	return r;
+}
 /******************************** demo end *****************************************/
