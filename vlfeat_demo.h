@@ -42,10 +42,21 @@ void vlfeat_printMat_demo();
 
 void opencv_filestorage_demo();
 
+float vlfeat_test_demo(const string &path);
+
 int vlfeat_train_Encoder(const string &imgfolder);
 
 int vlfeat_encode_images(const string& filename, vector<Mat>& features, vector<int>& labels);
 
 int opencv_train_svm(const string& data_filename, const string& filename_to_save);
+
+typedef struct GMM_Para
+{
+	int dimension;
+	int numClusters;
+	Mat measMat;
+	Mat covarMat;
+	Mat priorsMat;
+}GMM_PARA_S;
 
 #endif
