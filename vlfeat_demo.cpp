@@ -557,7 +557,7 @@ int opencv_train_svm(const string& data_filename, const string& filename_to_save
 
 	Ptr<SVM> model;
 	int nsamples_all = data.rows;
-	int ntrain_samples = (int)(nsamples_all*0.7);
+	int ntrain_samples = (int)(nsamples_all*0.9);
 
 	// create classifier by using <data> and <responses>
 	cout << "Training the classifier ...\n";
@@ -686,18 +686,28 @@ void vlfeat_dsift_demo()
 
 void vlfeat_printMat_demo()
 {
-	cv::Mat mat(3, 4, CV_32FC1);
-	cv::Mat mat2(3, 4, CV_32FC1, Scalar(2));
+	cv::Mat mat(3, 4, CV_32FC1, Scalar(0));
+	vector<float> score;
+	//cv::Mat mat2(3, 4, CV_32FC1, Scalar(2));
+	FileStorage fs(".\\vocabulary.xml", FileStorage::WRITE);
 
 	for (int i = 0; i < mat.rows; i++)
 	{
 		for (int j = 0; j < mat.cols; j++)
 		{
-			mat.at<float>(i, j) = i*mat.cols + j;
+			//mat.at<float>(i, j) = i*mat.cols + j;
+			score.push_back((i*mat.cols + j));
 		}
 	}
-	memcpy(mat2.data, mat.data, mat.rows*mat.cols*sizeof(float));
-	vlfeat_printMat(mat2);
+
+	memcpy(mat.data, score.data(), mat.rows*mat.cols*sizeof(float));
+
+	cout << mat << endl;
+	fs << "vocabulary" << mat;
+
+	fs.release();
+	//memcpy(mat2.data, mat.data, mat.rows*mat.cols*sizeof(float));
+	//vlfeat_printMat(mat2);
 	return;
 }
 
@@ -716,6 +726,84 @@ void opencv_filestorage_demo()
 	return;
 }
 
+static bool CompareOperation(const float lit, const float rit)
+{
+	if (lit > rit){
+		return true;
+	}
+	else{
+		return false;
+	}
+}
+void vector_operation_demo()
+{
+	FileStorage fs(".\\spoofSamples.xml", FileStorage::READ);
+	Mat distMat;
+	fs["distances"] >> distMat;
+	fs.release();
+	//float thresh[6] = { 0, -0.1, -0.2, -0.3, -0.4, -0.5 };
+	float count[7] = {0};
+
+	vector<float> distVec;
+	float value = 0;
+	float sum = 0;
+	for (int i = 0; i < distMat.cols; i++)
+	{
+		value = distMat.at<float>(0, i);
+		distVec.push_back(value);
+		sum = sum + value;
+	}
+
+	float mean = sum / distMat.cols;
+
+
+	float val = 0;
+	for (vector<float>::iterator it = distVec.begin(); it != distVec.end(); ++it)
+	{
+		val = *it;
+		if( val > 0)
+		{
+			count[0]++;
+		}
+	    
+		if (val > -0.1)
+		{
+			count[1]++;
+		}
+
+
+		if (val > -0.2)
+		{
+			count[2]++;
+		}
+
+		if (val > -0.3)
+		{
+			count[3]++;
+		}
+
+		if (val > -0.4)
+		{
+			count[4]++;
+		}
+
+		if (val > -0.5)
+		{
+			count[5]++;
+		}
+
+		count[6]++;
+	}
+
+	for (int i = 0; i < 7; i++)
+	{
+		count[i] = count[i] / distMat.cols;
+	}
+	
+	std::sort(distVec.begin(), distVec.end(), CompareOperation);
+	return ;
+
+}
 
 Ptr<SVM> vlfeat_load_SVM_model(const string& filename_to_load)
 {
@@ -800,7 +888,10 @@ float vlfeat_test_demo(const string &path)
 	Mat FishVec(1, fishVecSize, CV_32FC1, Scalar(0));
 	memcpy(FishVec.data, enc, encSize);
 
-	float r = model->predict(FishVec);
+	Mat outRes(1, 2, CV_32FC1, Scalar(0));
+	cout << outRes << endl;
+	float r = model->predict(FishVec, outRes, 1);
+	cout << outRes << endl;
 
 	/*free memory*/
 	free(grayImg);

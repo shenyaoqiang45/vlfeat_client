@@ -44,6 +44,8 @@ void opencv_filestorage_demo();
 
 float vlfeat_test_demo(const string &path);
 
+void vector_operation_demo();
+
 int vlfeat_train_Encoder(const string &imgfolder);
 
 int vlfeat_encode_images(const string& filename, vector<Mat>& features, vector<int>& labels);
